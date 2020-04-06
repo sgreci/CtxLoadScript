@@ -22,19 +22,20 @@ Function LogLine($strLine)
 
 #Script Setup
 #===================================================================
-$adminAddress = "xd1"
-$domain = "citrix"
+$adminAddress = ""
+$domain = ""
+$AdministratorGroup=""
 #note $adminaddress is ignored when using the cloud sdk
 $CatalogNamePrefix = "MC_"
 $DesktopGroupNamePrefix = "DG_"
 $BranchNamePrefix = "Filiale "
-$csvName = "input.txt"
+$csvName = "input.csv"
 $AddComputers = $true
 $AddUsers = $true
 $AddDeliveryGroup = $true
 $AllowMultipleUsers = $false
-$CheckResultsComputers = $true
-$CheckResultsUsers = $true
+#$CheckResultsComputers = $true
+#$CheckResultsUsers = $true
 $AddCatalogs= $true
 #===================================================================
 
@@ -237,6 +238,9 @@ if ($AddDeliveryGroup)
 
         #CREATE ASSIGNMENT POLICY RULE  -> desktop assignment rule da Studio
         $fullBranchGroup = $domain+"\"+$BranchGroupAD
+        $fullAdministrator = $domain+"\"+$AdministratorGroup
+        $list=@( $fullBranchGroup, $fullAdministrator )
+        #$fullBranchGroup = $domain+"\"+$BranchGroupAD+","+$domain+"\"+$AdministratorGroup
         $PolicyRule = Get-BrokerAssignmentPolicyRule -Name $BranchCode -AdminAddress $adminAddress -ErrorAction SilentlyContinue
         if($PolicyRule -eq $null){
             Logline "New Assignment Policy Rule : for $DeliveryGroupName"
@@ -248,10 +252,11 @@ if ($AddDeliveryGroup)
         if( $PolicyAccessRule -eq $null ) {
             Logline "New Access Policy Rule : for $DeliveryGroupName"
             try{
-                New-BrokerAccessPolicyRule -AdminAddress $adminAddress -Name ($BranchCode+"_Direct") -IncludedUsers $fullBranchGroup -DesktopGroupUid $DeliveryGroup.Uid -IncludedUserFilterEnabled $true -IncludedSmartAccessFilterEnabled $true -AllowedConnections NotViaAG
-                New-BrokerAccessPolicyRule -AdminAddress $adminAddress -Name ($BranchCode+"_ViaAG") -IncludedUsers $fullBranchGroup -DesktopGroupUid $DeliveryGroup.Uid -IncludedUserFilterEnabled $true -IncludedSmartAccessFilterEnabled $true -AllowedConnections ViaAG
-            }catch{
+                New-BrokerAccessPolicyRule -AdminAddress $adminAddress -Name ($BranchCode+"_Direct") -IncludedUsers  $list -DesktopGroupUid $DeliveryGroup.Uid -IncludedUserFilterEnabled $true -IncludedSmartAccessFilterEnabled $true -AllowedConnections NotViaAG
+                New-BrokerAccessPolicyRule -AdminAddress $adminAddress -Name ($BranchCode+"_ViaAG") -IncludedUsers  $list -DesktopGroupUid $DeliveryGroup.Uid -IncludedUserFilterEnabled $true -IncludedSmartAccessFilterEnabled $true -AllowedConnections ViaAG
+            }catch{                
                 LogLine "Error on AccessPolicyRule $BranchCode for $DeliveryGroupName"
+                LogLine $error[0].Exception.Message.ToString()
             }
              
         }
